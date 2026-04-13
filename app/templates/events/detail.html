@@ -1,0 +1,719 @@
+{% extends "base.html" %}
+{% block title %}{{ event.title }} — EventFlow{% endblock %}
+
+{% block content %}
+
+<!-- BANNER -->
+<div class="detail-banner">
+    {% if event.banner_image %}
+        <img src="{{ url_for('static', filename='uploads/' + event.banner_image) }}" alt="{{ event.title }}" class="banner-img">
+    {% elif event.banner_url %}
+        <img src="{{ event.banner_url }}" alt="{{ event.title }}" class="banner-img">
+    {% else %}
+        <div class="banner-placeholder">🎉</div>
+    {% endif %}
+    <div class="banner-overlay"></div>
+
+    <div class="banner-content">
+        <a href="/events" class="back-link">← Back to Events</a>
+        <div class="banner-badges">
+            {% set pct = ((event.registered_count / event.capacity) * 100)|int %}
+            {% if pct >= 100 %}
+                <span class="badge badge-full">Sold Out</span>
+            {% elif pct >= 75 %}
+                <span class="badge badge-filling">🔥 Filling Fast</span>
+            {% else %}
+                <span class="badge badge-open">● Open</span>
+            {% endif %}
+            <span class="badge badge-type">{{ 'Public' if event.is_public else 'Private' }}</span>
+        </div>
+        <h1>{{ event.title }}</h1>
+        <div class="banner-host">
+            <span class="host-avatar">{{ event.host_name[0].upper() }}</span>
+            <span>Hosted by <strong>{{ event.host_name }}</strong></span>
+        </div>
+    </div>
+</div>
+
+<!-- BODY -->
+<div class="detail-body">
+
+    <!-- LEFT: Main Content -->
+    <div class="detail-main">
+
+        <!-- About -->
+        <div class="detail-card">
+            <h2 class="card-title">About this Event</h2>
+            <p class="event-description">{{ event.description or 'No description provided.' }}</p>
+        </div>
+
+        <!-- Details Grid -->
+        <div class="detail-card">
+            <h2 class="card-title">Event Details</h2>
+            <div class="details-grid">
+                <div class="detail-item">
+                    <div class="detail-item-icon">📅</div>
+                    <div>
+                        <div class="detail-item-label">Starts</div>
+                        <div class="detail-item-value">{{ event.start_datetime.strftime('%A, %B %d, %Y') }}</div>
+                        <div class="detail-item-sub">{{ event.start_datetime.strftime('%I:%M %p') }}</div>
+                    </div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-item-icon">🏁</div>
+                    <div>
+                        <div class="detail-item-label">Ends</div>
+                        <div class="detail-item-value">{{ event.end_datetime.strftime('%A, %B %d, %Y') }}</div>
+                        <div class="detail-item-sub">{{ event.end_datetime.strftime('%I:%M %p') }}</div>
+                    </div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-item-icon">📍</div>
+                    <div>
+                        <div class="detail-item-label">Location</div>
+                        <div class="detail-item-value">{{ event.location or 'To be announced' }}</div>
+                    </div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-item-icon">👥</div>
+                    <div>
+                        <div class="detail-item-label">Capacity</div>
+                        <div class="detail-item-value">{{ event.registered_count }} / {{ event.capacity }}</div>
+                        <div class="detail-item-sub">{{ event.capacity - event.registered_count }} spots remaining</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Attendees -->
+        <div class="detail-card">
+            <h2 class="card-title">Attendance</h2>
+            <div class="attendance-wrap">
+                <div class="attendance-bar-wrap">
+                    <div class="attendance-bar">
+                        <div class="attendance-fill" style="width: {{ [pct, 100]|min }}%
+                            {% if pct >= 100 %}; background: var(--accent-2)
+                            {% elif pct >= 75 %}; background: linear-gradient(90deg, #ffa500, #ff6b00)
+                            {% endif %}">
+                        </div>
+                    </div>
+                    <div class="attendance-labels">
+                        <span>{{ event.registered_count }} registered</span>
+                        <span>{{ pct }}% full</span>
+                    </div>
+                </div>
+
+                <div class="attendance-avatars">
+                    {% for i in range([event.registered_count, 8]|min) %}
+                    <div class="avatar-bubble" style="background: hsl({{ loop.index * 47 }}, 70%, 45%)">
+                        {{ loop.index }}
+                    </div>
+                    {% endfor %}
+                    {% if event.registered_count > 8 %}
+                    <div class="avatar-bubble avatar-more">+{{ event.registered_count - 8 }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- RIGHT: Sidebar -->
+    <div class="detail-sidebar">
+
+        <div class="reg-card">
+            <!-- Capacity -->
+            <div class="reg-capacity">
+                <div class="reg-cap-header">
+                    <span class="reg-cap-label">Spots filled</span>
+                    <span class="reg-cap-count">{{ event.registered_count }}/{{ event.capacity }}</span>
+                </div>
+                <div class="reg-bar">
+                    <div class="reg-bar-fill" style="width: {{ [pct, 100]|min }}%
+                        {% if pct >= 100 %}; background: var(--accent-2)
+                        {% elif pct >= 75 %}; background: linear-gradient(90deg, #ffa500, #ff6b00)
+                        {% endif %}">
+                    </div>
+                </div>
+                {% if pct >= 100 %}
+                    <p class="cap-msg cap-full">This event is sold out.</p>
+                {% elif pct >= 75 %}
+                    <p class="cap-msg cap-warn">Only {{ event.capacity - event.registered_count }} spots left!</p>
+                {% else %}
+                    <p class="cap-msg cap-good">{{ event.capacity - event.registered_count }} spots available</p>
+                {% endif %}
+            </div>
+
+            <!-- CTA -->
+            <div class="reg-cta">
+                {% if not session.get('user_id') %}
+                    <a href="/login" class="btn-register">Login to Register</a>
+
+                {% elif session.get('user_id') == event.host_id %}
+                    <div class="host-pill">🎤 You are hosting this event</div>
+                    <a href="/events/{{ event.id }}/edit" class="btn-edit-event">Edit Event →</a>
+
+                {% elif is_registered %}
+                    <div class="registered-pill">✅ You're registered!</div>
+                    <form method="POST" action="/events/{{ event.id }}/unregister">
+                        <button type="submit" class="btn-unregister">Unregister</button>
+                    </form>
+
+                {% elif pct >= 100 %}
+                    <button class="btn-register btn-disabled" disabled>Event Full</button>
+
+                {% else %}
+                    <form method="POST" action="/events/{{ event.id }}/register">
+                        <button type="submit" class="btn-register">Reserve Your Spot →</button>
+                    </form>
+                {% endif %}
+            </div>
+
+            <!-- Meta -->
+            <div class="reg-meta">
+                <div class="reg-meta-row">
+                    <span class="rm-icon">📅</span>
+                    <div>
+                        <div class="rm-label">Date</div>
+                        <div class="rm-value">{{ event.start_datetime.strftime('%b %d, %Y') }}</div>
+                    </div>
+                </div>
+                <div class="reg-meta-row">
+                    <span class="rm-icon">🕐</span>
+                    <div>
+                        <div class="rm-label">Time</div>
+                        <div class="rm-value">{{ event.start_datetime.strftime('%I:%M %p') }}</div>
+                    </div>
+                </div>
+                <div class="reg-meta-row">
+                    <span class="rm-icon">📍</span>
+                    <div>
+                        <div class="rm-label">Location</div>
+                        <div class="rm-value">{{ event.location or 'TBD' }}</div>
+                    </div>
+                </div>
+                <div class="reg-meta-row">
+                    <span class="rm-icon">👤</span>
+                    <div>
+                        <div class="rm-label">Host</div>
+                        <div class="rm-value">{{ event.host_name }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Share -->
+        <div class="share-card">
+            <p class="share-label">Share this event</p>
+            <div class="share-btns">
+                <button class="share-btn" onclick="copyLink()">🔗 Copy Link</button>
+            </div>
+            <p class="copied-msg" id="copiedMsg">✓ Link copied!</p>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_css %}
+<style>
+
+/* BANNER */
+.detail-banner {
+    position: relative;
+    height: 460px;
+    overflow: hidden;
+    background: linear-gradient(135deg, #1a1030, #0f1a2a);
+}
+
+.banner-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    animation: slow-zoom 20s ease-in-out infinite alternate;
+}
+
+@keyframes slow-zoom {
+    from { transform: scale(1); }
+    to   { transform: scale(1.06); }
+}
+
+.banner-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8rem;
+}
+
+.banner-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        to bottom,
+        rgba(10,10,15,0.2) 0%,
+        rgba(10,10,15,0.3) 40%,
+        rgba(10,10,15,0.95) 100%
+    );
+}
+
+.banner-content {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    padding: 2.5rem 6%;
+}
+
+.back-link {
+    display: inline-block;
+    color: rgba(255,255,255,0.6);
+    text-decoration: none;
+    font-size: 0.85rem;
+    margin-bottom: 1.2rem;
+    transition: color 0.2s;
+    backdrop-filter: blur(4px);
+}
+
+.back-link:hover { color: white; }
+
+.banner-badges {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.badge {
+    padding: 0.28rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.badge-open    { background: rgba(0,200,100,0.15); color: #00c864; border: 1px solid rgba(0,200,100,0.3); }
+.badge-filling { background: rgba(255,165,0,0.15); color: #ffa500; border: 1px solid rgba(255,165,0,0.3); }
+.badge-full    { background: rgba(252,92,125,0.15); color: var(--accent-2); border: 1px solid rgba(252,92,125,0.3); }
+.badge-type    { background: rgba(124,92,252,0.15); color: var(--accent); border: 1px solid rgba(124,92,252,0.3); }
+
+.banner-content h1 {
+    font-family: 'Clash Display', sans-serif;
+    font-size: clamp(1.8rem, 4vw, 3.2rem);
+    font-weight: 700;
+    line-height: 1.1;
+    margin-bottom: 1rem;
+    text-shadow: 0 2px 20px rgba(0,0,0,0.5);
+}
+
+.banner-host {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: rgba(255,255,255,0.7);
+    font-size: 0.9rem;
+}
+
+.host-avatar {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: white;
+    flex-shrink: 0;
+}
+
+.banner-host strong { color: white; }
+
+/* BODY */
+.detail-body {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 2.5rem;
+    padding: 2.5rem 6% 4rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* CARDS */
+.detail-main { display: flex; flex-direction: column; gap: 1.5rem; }
+
+.detail-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.8rem;
+    transition: border-color 0.2s;
+}
+
+.detail-card:hover { border-color: rgba(124,92,252,0.2); }
+
+.card-title {
+    font-family: 'Clash Display', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin-bottom: 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.card-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+}
+
+.event-description {
+    color: var(--text-muted);
+    line-height: 1.9;
+    font-size: 0.95rem;
+}
+
+/* DETAILS GRID */
+.details-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.detail-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.1rem;
+    transition: border-color 0.2s;
+}
+
+.detail-item:hover { border-color: rgba(124,92,252,0.25); }
+
+.detail-item-icon {
+    font-size: 1.4rem;
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+}
+
+.detail-item-label {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.3rem;
+}
+
+.detail-item-value {
+    font-size: 0.92rem;
+    font-weight: 600;
+    margin-bottom: 0.15rem;
+}
+
+.detail-item-sub {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+}
+
+/* ATTENDANCE */
+.attendance-wrap { display: flex; flex-direction: column; gap: 1.2rem; }
+
+.attendance-bar {
+    height: 8px;
+    background: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+}
+
+.attendance-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    border-radius: 4px;
+    transition: width 1s ease;
+}
+
+.attendance-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.attendance-avatars {
+    display: flex;
+    align-items: center;
+}
+
+.avatar-bubble {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: white;
+    border: 2px solid var(--bg);
+    margin-left: -8px;
+    first-of-type: { margin-left: 0; }
+    transition: transform 0.2s;
+}
+
+.avatar-bubble:first-child { margin-left: 0; }
+.avatar-bubble:hover { transform: translateY(-3px); z-index: 1; }
+
+.avatar-more {
+    background: var(--surface);
+    border-color: var(--border);
+    color: var(--text-muted);
+    font-size: 0.7rem;
+}
+
+/* SIDEBAR */
+.reg-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.8rem;
+    position: sticky;
+    top: 90px;
+    margin-bottom: 1.2rem;
+}
+
+.reg-capacity { margin-bottom: 1.5rem; }
+
+.reg-cap-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.6rem;
+}
+
+.reg-cap-label { font-size: 0.82rem; color: var(--text-muted); }
+.reg-cap-count { font-size: 0.9rem; font-weight: 600; }
+
+.reg-bar {
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 0.6rem;
+}
+
+.reg-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    border-radius: 3px;
+    transition: width 0.8s ease;
+}
+
+.cap-msg { font-size: 0.82rem; font-weight: 500; }
+.cap-good { color: #00c864; }
+.cap-warn { color: #ffa500; }
+.cap-full { color: var(--accent-2); }
+
+.reg-cta { margin-bottom: 1.5rem; }
+
+.btn-register {
+    display: block;
+    width: 100%;
+    padding: 1rem;
+    text-align: center;
+    background: linear-gradient(135deg, var(--accent), #9b7bff);
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'Satoshi', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: transform 0.2s, box-shadow 0.2s;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-register::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, transparent, rgba(255,255,255,0.1), transparent);
+    transform: translateX(-100%);
+    transition: transform 0.5s;
+}
+
+.btn-register:hover::before { transform: translateX(100%); }
+.btn-register:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(124,92,252,0.4);
+}
+
+.btn-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: var(--border);
+}
+
+.btn-disabled:hover { transform: none; box-shadow: none; }
+
+.host-pill, .registered-pill {
+    text-align: center;
+    padding: 0.8rem;
+    border-radius: var(--radius);
+    font-size: 0.88rem;
+    font-weight: 500;
+    margin-bottom: 1rem;
+}
+
+.host-pill {
+    background: rgba(124,92,252,0.1);
+    border: 1px solid rgba(124,92,252,0.25);
+    color: var(--accent);
+}
+
+.registered-pill {
+    background: rgba(0,200,100,0.1);
+    border: 1px solid rgba(0,200,100,0.25);
+    color: #00c864;
+}
+
+.btn-edit-event {
+    display: block;
+    width: 100%;
+    padding: 0.85rem;
+    text-align: center;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: border-color 0.2s, background 0.2s;
+}
+
+.btn-edit-event:hover {
+    border-color: var(--accent);
+    background: rgba(124,92,252,0.05);
+}
+
+.btn-unregister {
+    display: block;
+    width: 100%;
+    padding: 0.85rem;
+    text-align: center;
+    background: rgba(252,92,125,0.08);
+    border: 1px solid rgba(252,92,125,0.25);
+    border-radius: var(--radius);
+    color: var(--accent-2);
+    font-family: 'Satoshi', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-unregister:hover { background: rgba(252,92,125,0.15); }
+
+/* REG META */
+.reg-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+    padding-top: 1.2rem;
+    border-top: 1px solid var(--border);
+}
+
+.reg-meta-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+.rm-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 0.1rem; }
+
+.rm-label {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.15rem;
+}
+
+.rm-value { font-size: 0.88rem; font-weight: 500; }
+
+/* SHARE CARD */
+.share-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.2rem 1.5rem;
+}
+
+.share-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.8rem;
+}
+
+.share-btns { display: flex; gap: 0.5rem; }
+
+.share-btn {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.6rem;
+    color: var(--text);
+    font-family: 'Satoshi', sans-serif;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+}
+
+.share-btn:hover {
+    border-color: var(--accent);
+    background: rgba(124,92,252,0.05);
+}
+
+.copied-msg {
+    font-size: 0.78rem;
+    color: #00c864;
+    margin-top: 0.5rem;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.copied-msg.show { opacity: 1; }
+
+@media (max-width: 900px) {
+    .detail-body { grid-template-columns: 1fr; }
+    .details-grid { grid-template-columns: 1fr; }
+    .reg-card { position: static; }
+    .detail-banner { height: 320px; }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function copyLink() {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+        const msg = document.getElementById('copiedMsg');
+        msg.classList.add('show');
+        setTimeout(() => msg.classList.remove('show'), 2500);
+    });
+}
+</script>
+{% endblock %}

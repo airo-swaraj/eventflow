@@ -1,0 +1,360 @@
+\{% extends "base.html" %}
+{% block title %}Dashboard — EventFlow{% endblock %}
+
+{% block content %}
+<div class="dashboard-wrapper">
+
+    <!-- Header -->
+    <div class="dashboard-header">
+        <div>
+            <h1>Welcome back, <span>{{ session['username'] }}</span> 👋</h1>
+            <p>Manage your events and registrations from here.</p>
+        </div>
+        <a href="/events/create" class="btn-primary">+ Create Event</a>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="stats-row">
+        <div class="stat-card">
+            <div class="stat-number">{{ hosted_events|length }}</div>
+            <div class="stat-label">Events Hosting</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ registered_events|length }}</div>
+            <div class="stat-label">Events Joined</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">
+                {{ hosted_events | selectattr('start_datetime') | list | length }}
+            </div>
+            <div class="stat-label">Upcoming</div>
+        </div>
+    </div>
+
+    <!-- My Hosted Events -->
+    <section class="dashboard-section">
+        <div class="section-header">
+            <h2>My Events</h2>
+            <a href="/events/create" class="section-link">+ New Event</a>
+        </div>
+
+        {% if hosted_events %}
+        <div class="events-grid">
+            {% for event in hosted_events %}
+            <div class="event-card">
+                <div class="event-banner">
+                    {% if event.banner_image %}
+                        <img src="{{ url_for('static', filename='uploads/' + event.banner_image) }}" alt="{{ event.title }}">
+                    {% elif event.banner_url %}
+                        <img src="{{ event.banner_url }}" alt="{{ event.title }}">
+                    {% else %}
+                        <div class="event-banner-placeholder">🎉</div>
+                    {% endif %}
+                    <div class="event-badge {% if event.is_public %}badge-public{% else %}badge-private{% endif %}">
+                        {{ 'Public' if event.is_public else 'Private' }}
+                    </div>
+                </div>
+                <div class="event-body">
+                    <h3>{{ event.title }}</h3>
+                    <div class="event-meta">
+                        <span>📅 {{ event.start_datetime.strftime('%b %d, %Y') }}</span>
+                        <span>📍 {{ event.location or 'TBD' }}</span>
+                    </div>
+                    <div class="event-capacity">
+                        <div class="capacity-bar">
+                            <div class="capacity-fill" style="width: {{ [((event.registered_count / event.capacity) * 100), 100] | min }}%"></div>
+                        </div>
+                        <span>{{ event.registered_count }}/{{ event.capacity }} registered</span>
+                    </div>
+                    <div class="event-actions">
+                        <a href="/events/{{ event.id }}" class="btn-outline btn-sm">View</a>
+                        <a href="/events/{{ event.id }}/edit" class="btn-ghost btn-sm">Edit</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">🎪</div>
+            <h3>No events yet</h3>
+            <p>Create your first event and start bringing people together.</p>
+            <a href="/events/create" class="btn-primary">Create Event</a>
+        </div>
+        {% endif %}
+    </section>
+
+    <!-- Registered Events -->
+    <section class="dashboard-section">
+        <div class="section-header">
+            <h2>Registered Events</h2>
+            <a href="/events" class="section-link">Browse More →</a>
+        </div>
+
+        {% if registered_events %}
+        <div class="events-grid">
+            {% for event in registered_events %}
+            <div class="event-card event-card-registered">
+                <div class="event-banner">
+                    {% if event.banner_image %}
+                        <img src="{{ url_for('static', filename='uploads/' + event.banner_image) }}" alt="{{ event.title }}">
+                    {% elif event.banner_url %}
+                        <img src="{{ event.banner_url }}" alt="{{ event.title }}">
+                    {% else %}
+                        <div class="event-banner-placeholder">🎟️</div>
+                    {% endif %}
+                    <div class="event-badge badge-registered">Registered</div>
+                </div>
+                <div class="event-body">
+                    <h3>{{ event.title }}</h3>
+                    <div class="event-meta">
+                        <span>📅 {{ event.start_datetime.strftime('%b %d, %Y') }}</span>
+                        <span>📍 {{ event.location or 'TBD' }}</span>
+                    </div>
+                    <div class="event-actions">
+                        <a href="/events/{{ event.id }}" class="btn-outline btn-sm">View Details</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">🔍</div>
+            <h3>No registrations yet</h3>
+            <p>Browse events and register for ones that interest you.</p>
+            <a href="/events" class="btn-primary">Browse Events</a>
+        </div>
+        {% endif %}
+    </section>
+
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.dashboard-wrapper {
+    padding: 3rem 6%;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.dashboard-header h1 {
+    font-family: 'Clash Display', sans-serif;
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.4rem;
+}
+
+.dashboard-header h1 span { color: var(--accent); }
+
+.dashboard-header p { color: var(--text-muted); }
+
+/* STATS */
+.stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.2rem;
+    margin-bottom: 3rem;
+}
+
+.stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem 2rem;
+    text-align: center;
+    transition: border-color 0.2s;
+}
+
+.stat-card:hover { border-color: var(--accent); }
+
+.stat-number {
+    font-family: 'Clash Display', sans-serif;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--accent);
+}
+
+.stat-label {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin-top: 0.3rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* SECTIONS */
+.dashboard-section { margin-bottom: 3.5rem; }
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.section-header h2 {
+    font-family: 'Clash Display', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 600;
+}
+
+.section-link {
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.section-link:hover { text-decoration: underline; }
+
+/* EVENT CARDS */
+.events-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.event-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: transform 0.2s, border-color 0.2s;
+}
+
+.event-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--accent);
+}
+
+.event-banner {
+    height: 160px;
+    position: relative;
+    background: linear-gradient(135deg, #1a1030, #0f1a2a);
+    overflow: hidden;
+}
+
+.event-banner img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.event-banner-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+}
+
+.event-badge {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.badge-public    { background: rgba(0,200,100,0.15); color: #00c864; border: 1px solid rgba(0,200,100,0.3); }
+.badge-private   { background: rgba(252,92,125,0.15); color: var(--accent-2); border: 1px solid rgba(252,92,125,0.3); }
+.badge-registered{ background: rgba(124,92,252,0.15); color: var(--accent); border: 1px solid rgba(124,92,252,0.3); }
+
+.event-body { padding: 1.2rem 1.4rem; }
+
+.event-body h3 {
+    font-family: 'Clash Display', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin-bottom: 0.7rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.event-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    margin-bottom: 1rem;
+}
+
+.event-capacity { margin-bottom: 1rem; }
+
+.capacity-bar {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-bottom: 0.4rem;
+    overflow: hidden;
+}
+
+.capacity-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    border-radius: 2px;
+    transition: width 0.3s;
+}
+
+.event-capacity span {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+}
+
+.event-actions {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.btn-sm {
+    padding: 0.4rem 1rem !important;
+    font-size: 0.85rem !important;
+}
+
+/* EMPTY STATE */
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: var(--surface);
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+}
+
+.empty-icon { font-size: 3rem; margin-bottom: 1rem; }
+
+.empty-state h3 {
+    font-family: 'Clash Display', sans-serif;
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+}
+
+.empty-state p {
+    color: var(--text-muted);
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+    .stats-row { grid-template-columns: 1fr; }
+    .dashboard-header { flex-direction: column; align-items: flex-start; }
+}
+</style>
+{% endblock %}

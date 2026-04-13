@@ -1,0 +1,9 @@
+Flask==3.0.3
+Flask-MySQLdb==2.0.0
+Flask-Mail==0.10.0
+Flask-Bcrypt==1.0.1
+Flask-WTF==1.2.1
+Werkzeug==3.0.3
+python-dotenv==1.0.1
+Pillow==10.4.0
+mysqlclient==2.2.4
