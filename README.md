@@ -131,28 +131,18 @@ Access at: `http://localhost:5000`
 
 ### Option 2: Docker Deployment (Recommended)
 
-#### 1. Prerequisites on Azure VM
-```bash
-# Update system packages
-sudo apt update && sudo apt upgrade -y
+#### 1. Prerequisites
 
-# Install Docker
-sudo apt install -y docker.io
+**Ensure Docker and Docker Compose are installed:**
 
-# Install Docker Compose
-sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-sudo chmod +x /usr/local/bin/docker-compose
+**On macOS/Windows:**
+- Download [Docker Desktop](https://www.docker.com/products/docker-desktop)
+- Includes both Docker and Docker Compose
 
-# Add current user to docker group (avoid using sudo)
-sudo usermod -aG docker $USER
-newgrp docker
+**On Linux/Azure VM:**
+- Follow the installation steps in [Azure VM Configuration](#azure-vm-configuration) section
 
-# Verify installation
-docker --version
-docker-compose --version
-```
-
-#### 2. Clone Repository on Azure VM
+#### 2. Clone Repository
 ```bash
 git clone https://github.com/airo-swaraj/eventflow.git
 cd eventflow
@@ -206,20 +196,18 @@ docker-compose logs db
 
 ## Azure VM Configuration
 
-### 1. Create Azure Virtual Machine
+### 1. Azure Virtual Machine Requirements
 
-```bash
-# Using Azure CLI
-az vm create \
-  --resource-group myResourceGroup \
-  --name eventflow-vm \
-  --image UbuntuLTS \
-  --size Standard_B2s \
-  --admin-username azureuser \
-  --generate-ssh-keys
-```
+**VM Configuration:**
+- **Operating System**: Ubuntu 20.04 LTS or later
+- **Size**: Standard_B2s (2 vCPU, 4 GB RAM) or higher
+- **Storage**: At least 30 GB disk space
+- **SSH Access**: Enabled with public key authentication
+- **Public IP**: Required for accessing the application
 
-### 2. Network Security Group (NSG) - Open Required Ports
+> Note: Create the VM using Azure Portal or Azure CLI according to your organization's process
+
+### 2. Network Security Group (NSG) - Required Ports
 
 **Ports to Open:**
 
@@ -250,55 +238,66 @@ Priority: 101
 Name: Allow-SSH
 ```
 
-#### Using Azure CLI:
-```bash
-# Allow Flask on port 5000
-az network nsg rule create \
-  --resource-group myResourceGroup \
-  --nsg-name eventflow-vmNSG \
-  --name Allow-EventFlow \
-  --protocol tcp \
-  --priority 100 \
-  --destination-port-ranges 5000 \
-  --access Allow
+### 3. Install Required Software on Azure VM
 
-# Allow SSH on port 22
-az network nsg rule create \
-  --resource-group myResourceGroup \
-  --nsg-name eventflow-vmNSG \
-  --name Allow-SSH \
-  --protocol tcp \
-  --priority 101 \
-  --destination-port-ranges 22 \
-  --access Allow
+#### 1. Git Installation
+```bash
+# Update system packages
+sudo apt update && sudo apt upgrade -y
+
+# Install Git
+sudo apt install -y git
+
+# Verify installation
+git --version
+
+# Configure Git (optional but recommended)
+git config --global user.name "Your Name"
+git config --global user.email "your-email@example.com"
 ```
 
-### 3. Connect to VM
+#### 2. Docker Installation
 ```bash
-# SSH into the VM (use public IP from Azure Portal)
-ssh -i ~/.ssh/id_rsa azureuser@<PUBLIC_IP>
+# Update system packages
+sudo apt update && sudo apt upgrade -y
+
+# Install Docker
+sudo apt install -y docker.io
+
+# Install Docker Compose
+sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+
+# Add current user to docker group (avoid using sudo)
+sudo usermod -aG docker $USER
+newgrp docker
+
+# Verify installation
+docker --version
+docker-compose --version
 ```
 
 ### 4. Deploy EventFlow on Azure VM
 
 ```bash
-# Connect to VM
-ssh azureuser@<PUBLIC_IP>
+# SSH into the VM (use public IP from Azure Portal)
+ssh -i ~/.ssh/id_rsa azureuser@<PUBLIC_IP>
 
-# Follow Docker Installation steps (see Option 2 above)
-
-# Clone and setup
+# Clone the repository
 git clone https://github.com/airo-swaraj/eventflow.git
 cd eventflow
 
-# Create .env file
-nano .env  # Add your configuration
+# Create .env file with your configuration
+nano .env  # Add your configuration (see .env.example)
 
-# Start application
+# Build and start containers
 docker-compose up -d
 
-# Verify status
+# Verify services are running
 docker ps
+
+# Check application logs
+docker-compose logs -f web
 ```
 
 ---
