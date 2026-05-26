@@ -277,27 +277,74 @@ docker --version
 docker-compose --version
 ```
 
-### 4. Deploy EventFlow on Azure VM
+---
 
+## Azure Deployment
+
+### 1. Connect to Azure VM
 ```bash
 # SSH into the VM (use public IP from Azure Portal)
 ssh -i ~/.ssh/id_rsa azureuser@<PUBLIC_IP>
+```
 
-# Clone the repository
+### 2. Clone the Repository
+```bash
 git clone https://github.com/airo-swaraj/eventflow.git
 cd eventflow
+```
 
+### 3. Configure Environment Variables
+```bash
 # Create .env file with your configuration
-nano .env  # Add your configuration (see .env.example)
+nano .env  # See .env.example for reference
+```
 
-# Build and start containers
+Add your configuration:
+```bash
+SECRET_KEY=your-secure-random-key
+MYSQL_HOST=db
+MYSQL_USER=eventflow_user
+MYSQL_PASSWORD=eventflow_pass
+MYSQL_DB=eventflow_db
+MAIL_USERNAME=your-gmail@gmail.com
+MAIL_PASSWORD=your-app-password
+MAIL_DEFAULT_SENDER=your-gmail@gmail.com
+```
+
+### 4. Build and Start Services
+```bash
+# Build Docker images
+docker-compose build
+
+# Start containers in background
 docker-compose up -d
 
 # Verify services are running
 docker ps
+```
 
+### 5. Verify Deployment
+```bash
 # Check application logs
 docker-compose logs -f web
+
+# Check database health
+docker-compose logs db
+
+# Test application availability
+curl http://localhost:5000/
+```
+
+### 6. Access the Application
+
+Once deployment is complete, access EventFlow at:
+```
+http://<AZURE_VM_PUBLIC_IP>:5000
+```
+
+**Example:**
+```
+http://20.119.52.45:5000
 ```
 
 ---
@@ -312,11 +359,6 @@ http://localhost:5000
 ### Azure VM Deployment
 ```
 http://<AZURE_VM_PUBLIC_IP>:5000
-```
-
-**Example:**
-```
-http://20.119.52.45:5000
 ```
 
 ### First Steps:
